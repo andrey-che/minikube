@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd-depl
+  labels:
+    app: httpd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpd
+  template:
+    metadata:
+      labels:
+        app: httpd
+    spec:
+      containers:
+      - name: httpd
+        image: httpd
+        ports:
+        - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: httpd-svc
+spec:
+  ports:
+    - name: http
+      port: 8888
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app: httpd
+  type: NodePort
