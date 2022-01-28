@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  volumeMode: Filesystem
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+
+---
+apiVersion: v1
+data:
+  POSTGRES_HOST_AUTH_METHOD: "md5"
+  # In case NFS /custom/mount:/var/lib/postgresql/data
+  PGDATA: "/var/lib/postgresql/data/pgdata"
+  POSTGRES_USER: postgres
+kind: ConfigMap
+metadata:
+  name: postgres-config
+
+---
+apiVersion: v1
+data:
+  # Aa123456
+  POSTGRES_PASSWORD: "QWExMjM0NTY="
+  MMUSER_PASSWORD: "QWExMjM0NTY="
+kind: Secret
+metadata:
+  name: postgres-secret
+
+---
+apiVersion: v1
+data:  
+  postgres_init.sh: |
+    #!/bin/bash
+    set -e
+
+    # configmap file is read only, so copy it before editing
+    cp /tmp/postgres_init.sql /tmp/postgres_init_mod.sql
+    sed -i "s/_MMUSER_PASSWORD_/${MMUSER_PASSWORD}/" /tmp/postgres_init_mod.sql    
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" < /tmp/postgres_init_mod.sql
+  postgres_init.sql: |
+    CREATE USER mmuser WITH PASSWORD '_MMUSER_PASSWORD_';
+    CREATE DATABASE mattermost;
+    GRANT ALL PRIVILEGES ON DATABASE mattermost TO mmuser;
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14.1
+          ports:
+            - containerPort: 5432          
+          volumeMounts:
+          - name: postgres-init-script-vol
+            mountPath: /docker-entrypoint-initdb.d/postgres_init.sh            
+            subPath: postgres_init.sh
+          - name: postgres-init-script-vol
+            mountPath: /tmp/postgres_init.sql
+            subPath: postgres_init.sql
+          - name: postgres-data
+            mountPath: /var/lib/postgresql/data
+          envFrom:
+          - prefix:
+            configMapRef:
+              name: postgres-config
+          env:
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: POSTGRES_PASSWORD
+          - name: MMUSER_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: MMUSER_PASSWORD
+      volumes:
+      - name: postgres-init-script-vol
+        configMap:
+          name: postgres-init-script
+          items:
+          - key: postgres_init.sh
+            path: postgres_init.sh
+          - key: postgres_init.sql
+            path: postgres_init.sql
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-service
+spec:
+  type: NodePort
+  selector:
+    app: postgres
+  ports:
+  - protocol: TCP
+    port: 5432
