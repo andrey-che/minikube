@@ -19,7 +19,7 @@ metadata:
   labels:
     app: mattermost
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -47,7 +47,16 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: postgres-secret
-                key: MMUSER_PASSWORD          
+                key: MMUSER_PASSWORD
+          livenessProbe:
+            exec:
+              command:
+              # if MM_STATUS is not OK sh returns exit code 1
+              - /bin/sh
+              - -c
+              - MM_STATUS=`curl -s localhost:8000/api/v4/system/ping | jq -r ".status"` && [ "$MM_STATUS" = "OK" ]
+            initialDelaySeconds: 5
+            periodSeconds: 5          
       volumes:
       - name: mattermost-data
         persistentVolumeClaim:
