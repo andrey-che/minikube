@@ -21,6 +21,8 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mattermost
@@ -31,7 +33,7 @@ spec:
     spec:
       containers:
         - name: mattermost
-          image: mattermost/mattermost-enterprise-edition:6.1
+          image: mattermost/mattermost-enterprise-edition:6.2
           ports:
             - containerPort: 8065          
           volumeMounts:
