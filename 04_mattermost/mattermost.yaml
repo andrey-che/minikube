@@ -54,9 +54,14 @@ spec:
               # if MM_STATUS is not OK sh returns exit code 1
               - /bin/sh
               - -c
-              - MM_STATUS=`curl -s localhost:8000/api/v4/system/ping | jq -r ".status"` && [ "$MM_STATUS" = "OK" ]
-            initialDelaySeconds: 5
-            periodSeconds: 5          
+              - MM_STATUS=`curl -s http://localhost:8000/api/v4/system/ping | jq -r ".status"` && [ "$MM_STATUS" = "OK" ]
+              # other option:
+              #- curl -f http://localhost:8000/api/v4/system/ping || exit 1
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
       volumes:
       - name: mattermost-data
         persistentVolumeClaim:
@@ -80,6 +85,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: mattermost-ingress
+  annotations:
+    # from mattermost documentation
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 16k
 spec:
   tls:
   - hosts:

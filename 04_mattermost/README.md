@@ -30,3 +30,8 @@ docker run --rm -p 8065:8065 --env DB_HOST=1.1.1.1 --env MM_USERNAME=mmuser --en
 kubectl create secret tls mattermost-tls --cert=tls\demo-tls.crt --key=tls\demo-tls.key
 ```
 
+
+
+------------
+
+Для продакшена у матермоста на самом деле есть другой способ разворачивания в кубернетис https://docs.mattermost.com/install/install-kubernetes.html
