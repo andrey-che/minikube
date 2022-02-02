@@ -12,7 +12,9 @@ apiVersion: v1
 data:
   # Aa123456
   POSTGRES_PASSWORD: "QWExMjM0NTY="
-  MMUSER_PASSWORD: "QWExMjM0NTY="
+  MMUSER_PASSWORD:  "QWExMjM0NTY="
+  # postgres://mmuser:Aa123456@postgresql-service:5432/mattermost?sslmode=disable\u0026connect_timeout=10
+  MM_SQLSETTINGS_DATASOURCE: "cG9zdGdyZXM6Ly9tbXVzZXI6QWExMjM0NTZAcG9zdGdyZXNxbC1zZXJ2aWNlOjU0MzIvbWF0dGVybW9zdD9zc2xtb2RlPWRpc2FibGUmY29ubmVjdF90aW1lb3V0PTEw"
 kind: Secret
 metadata:
   name: postgres-secret
@@ -27,25 +29,20 @@ data:
     # configmap file is read only, so copy it before editing
     cp /tmp/postgres_init.sql /tmp/postgres_init_mod.sql
     sed -i "s/__MMUSER_PASSWORD__/${MMUSER_PASSWORD}/" /tmp/postgres_init_mod.sql
-    sed -i "s/__MM_USER__/${MM_USERNAME}/" /tmp/postgres_init_mod.sql
-    sed -i "s/__MM_DATABASE__/${MM_DBNAME}/" /tmp/postgres_init_mod.sql
 
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" < /tmp/postgres_init_mod.sql
   postgres_init.sql: |
-    CREATE USER __MM_USER__ WITH PASSWORD '__MMUSER_PASSWORD__';
-    CREATE DATABASE __MM_DATABASE__;
-    GRANT ALL PRIVILEGES ON DATABASE __MM_DATABASE__ TO __MM_USER__;
+    CREATE USER mmuser WITH PASSWORD '__MMUSER_PASSWORD__';
+    CREATE DATABASE mattermost;
+    GRANT ALL PRIVILEGES ON DATABASE mattermost TO mmuser;
 kind: ConfigMap
 metadata:
   name: postgres-init-script
-  
+
 ---
 apiVersion: v1
 data:
-  MM_USERNAME: mmuser
-  MM_DBNAME: mattermost
-  DB_HOST: postgresql-service
-  DB_PORT_NUMBER: "5432"
+  MM_SERVICESETTINGS_SITEURL: "https://mm-test.525.su"
 kind: ConfigMap
 metadata:
   name: mattermost-config

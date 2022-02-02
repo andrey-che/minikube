@@ -31,8 +31,7 @@ spec:
     spec:
       containers:
         - name: mattermost
-          #image: mattermost/mattermost-enterprise-edition:6.1
-          image: mattermost/mattermost-prod-app
+          image: mattermost/mattermost-enterprise-edition:6.1
           ports:
             - containerPort: 8065          
           volumeMounts:
@@ -43,20 +42,15 @@ spec:
               configMapRef:
                 name: mattermost-config
           env:
-          - name: MM_PASSWORD
+          - name: MM_SQLSETTINGS_DATASOURCE
             valueFrom:
               secretKeyRef:
                 name: postgres-secret
-                key: MMUSER_PASSWORD
+                key: MM_SQLSETTINGS_DATASOURCE
           livenessProbe:
-            exec:
-              command:
-              # if MM_STATUS is not OK sh returns exit code 1
-              - /bin/sh
-              - -c
-              - MM_STATUS=`curl -s http://localhost:8000/api/v4/system/ping | jq -r ".status"` && [ "$MM_STATUS" = "OK" ]
-              # other option:
-              #- curl -f http://localhost:8000/api/v4/system/ping || exit 1
+            httpGet:
+              path: /api/v4/system/ping
+              port: 8065              
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 1
@@ -78,7 +72,7 @@ spec:
     app: mattermost
   ports:
   - protocol: TCP
-    port: 8000
+    port: 8065
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -103,4 +97,4 @@ spec:
           service:
             name: mattermost-service
             port:
-              number: 8000
+              number: 8065

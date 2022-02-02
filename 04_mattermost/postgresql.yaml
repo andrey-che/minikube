@@ -43,10 +43,6 @@ spec:
             subPath: postgres_init.sql
           - name: postgres-data
             mountPath: /var/lib/postgresql/data
-          envFrom:
-          - prefix:
-            configMapRef:
-              name: mattermost-config
           env:
           - name: POSTGRES_PASSWORD
             valueFrom:
